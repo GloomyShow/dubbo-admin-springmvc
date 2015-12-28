@@ -1,6 +1,7 @@
 package com.shawn.dubbo.controller.serMgr;
 
 
+import com.alibaba.dubbo.common.utils.NetUtils;
 import com.alibaba.dubbo.common.utils.StringUtils;
 import com.shawn.dubbo.common.route.OverrideUtils;
 import com.shawn.dubbo.dao.Provider;
@@ -31,7 +32,7 @@ import java.util.Map;
  * GET /providers/$id 查看提供者详细<br>
  * GET /providers/$id/edit 编辑提供者表单<br> Fin
  * POST /providers/$id 更新提供者<br>
- * GET /providers/$id/delete 删除提供者<br>
+ * GET /providers/$id/delete 删除提供者<br> Fin
  * GET /providers/$id/tostatic 转为静态<br>
  * GET /providers/$id/todynamic 转为动态<br>
  * GET /providers/$id/enable 启用<br>
@@ -201,14 +202,13 @@ public class ProviderController {
      * 创建提供者
      * @author 594829 on 2015/12/28
      * @param provider
-     * @param context
      * @param response
      * @param request
      * @return
      */
     @RequestMapping(value="/createProvider",method = RequestMethod.POST)
     @ResponseBody
-    public JsonResult createProvider(Provider provider, Map<String, Object> context ,HttpServletResponse response, HttpServletRequest request) {
+    public JsonResult createProvider(Provider provider,HttpServletResponse response, HttpServletRequest request) {
 
         JsonResult jsonResult = new JsonResult();
         User currentUser = (User)request.getSession().getAttribute(Constants.CURRENT_USER);
@@ -258,18 +258,35 @@ public class ProviderController {
     }
 
 
-    public boolean update(Provider newProvider, Map<String, Object> context) {
+    /**
+     * 更新提供者信息
+     * @param newProvider
+     * @param response
+     * @param request
+     * @return
+     */
+    @RequestMapping(value="/updateProvider",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult updateProvider(Provider newProvider, HttpServletResponse response, HttpServletRequest request) {
+        JsonResult jsonResult = new JsonResult();
+        User currentUser =(User) request.getSession().getAttribute(Constants.CURRENT_USER);
+        String operator = currentUser.getUsername();
+        String operatorAddress = NetUtils.getLocalHost();
         Long id = newProvider.getId();
         String parameters = newProvider.getParameters();
         Provider provider = providerService.findProvider(id);
         if (provider == null) {
-            context.put("message", getMessage("NoSuchOperationData", id));
-            return false;
+            jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                    SystemErrorCode.PARAMETER_HAS_NULLPOINTER,SystemConstants.PARAMETER_HAS_NULLPOINTER);
+
+            return jsonResult;
         }
         String service = provider.getService();
-        if (!super.currentUser.hasServicePrivilege(service)) {
-            context.put("message", getMessage("HaveNoServicePrivilege", service));
-            return false;
+        if (!currentUser.hasServicePrivilege(service)) {
+            jsonResult = JsonResultUtils.getJsonResult(provider.getService(),SystemConstants.RESPONSE_STATUS_FAILURE,
+                    SystemErrorCode.BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR,SystemConstants.BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR);
+
+            return jsonResult;
         }
         Map<String, String> oldMap = StringUtils.parseQueryString(provider.getParameters());
         Map<String, String> newMap = StringUtils.parseQueryString(parameters);
@@ -307,8 +324,119 @@ public class ProviderController {
             provider.setParameters(parameters);
             providerService.updateProvider(provider);
         }
-        return true;
+        jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_SUCCESS,null,SystemConstants.RESPONSE_MESSAGE_SUCCESS);;
+
+        return jsonResult;
     }
 
+
+    /**
+     * 删除提供者
+     * @param ids
+     * @param response
+     * @param request
+     * @return
+     */
+    @RequestMapping(value="/deleteProvider",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult<Object> deleteProvider(Long[] ids, HttpServletResponse response, HttpServletRequest request) {
+        JsonResult jsonResult = new JsonResult();
+        User currentUser =(User) request.getSession().getAttribute(Constants.CURRENT_USER);
+        for (Long id : ids) {
+            Provider provider = providerService.findProvider(id);
+            if (provider == null) {
+                jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                        SystemErrorCode.PARAMETER_HAS_NULLPOINTER,SystemConstants.PARAMETER_HAS_NULLPOINTER);
+
+                return jsonResult;
+            } else if (provider.isDynamic()) {
+                jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                        SystemErrorCode.CAN_NOT_DELETE_DYNAMICDATA_ERROR,SystemConstants.CAN_NOT_DELETE_DYNAMICDATA_ERROR);
+
+                return jsonResult;
+            } else if (! currentUser.hasServicePrivilege(provider.getService())) {
+                jsonResult = JsonResultUtils.getJsonResult(provider.getService(),SystemConstants.RESPONSE_STATUS_FAILURE,
+                        SystemErrorCode.BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR,SystemConstants.BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR);
+
+                return jsonResult;
+            }
+        }
+        for (Long id : ids) {
+            providerService.deleteStaticProvider(id);
+        }
+        jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_SUCCESS,null,SystemConstants.RESPONSE_MESSAGE_SUCCESS);;
+
+        return jsonResult;
+    }
+
+
+    /**
+     * 启用提供者
+     * @param ids
+     * @param response
+     * @param request
+     * @return
+     */
+    @RequestMapping(value="/enableProvider",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult<Object> enableProvider(Long[] ids, HttpServletResponse response, HttpServletRequest request) {
+        JsonResult jsonResult = new JsonResult();
+        User currentUser = (User)request.getSession().getAttribute(Constants.CURRENT_USER);
+        Map<Long, Provider> id2Provider = new HashMap<Long, Provider>();
+        for (Long id : ids) {
+            Provider provider = providerService.findProvider(id);
+            if (provider == null) {
+                jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                        SystemErrorCode.PARAMETER_HAS_NULLPOINTER,SystemConstants.PARAMETER_HAS_NULLPOINTER);
+
+                return jsonResult;
+            } else if (! currentUser.hasServicePrivilege(provider.getService())) {
+                jsonResult = JsonResultUtils.getJsonResult(provider.getService(),SystemConstants.RESPONSE_STATUS_FAILURE,
+                        SystemErrorCode.BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR,SystemConstants.BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR);
+
+                return jsonResult;
+            }
+            id2Provider.put(id, provider);
+        }
+        for (Long id : ids) {
+            providerService.enableProvider(id);
+        }
+        jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_SUCCESS,null,SystemConstants.RESPONSE_MESSAGE_SUCCESS);;
+        return jsonResult;
+    }
+
+
+    /**
+     * 禁用提供者
+     * @param ids
+     * @param response
+     * @param request
+     * @return
+     */
+    @RequestMapping(value="/disableProvider",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult<Object> disableProvider(Long[] ids, HttpServletResponse response, HttpServletRequest request) {
+       JsonResult jsonResult = new JsonResult();
+        User currentUser = (User)request.getSession().getAttribute(Constants.CURRENT_USER);
+        for (Long id : ids) {
+            Provider provider = providerService.findProvider(id);
+            if (provider == null) {
+                jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                        SystemErrorCode.PARAMETER_HAS_NULLPOINTER,SystemConstants.PARAMETER_HAS_NULLPOINTER);
+
+                return jsonResult;
+            } else if (! currentUser.hasServicePrivilege(provider.getService())) {
+                jsonResult = JsonResultUtils.getJsonResult(provider.getService(),SystemConstants.RESPONSE_STATUS_FAILURE,
+                        SystemErrorCode.BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR,SystemConstants.BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR);
+
+                return jsonResult;
+            }
+        }
+        for (Long id : ids) {
+            providerService.disableProvider(id);
+        }
+        jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_SUCCESS,null,SystemConstants.RESPONSE_MESSAGE_SUCCESS);;
+        return jsonResult;
+    }
 
 }

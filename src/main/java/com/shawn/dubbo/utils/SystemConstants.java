@@ -20,4 +20,8 @@ public interface SystemConstants {
 	String RESPONSE_MESSAGE_ROLE_NOEXIST = "用户不存在!";
 
 	String BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR="用户没有增加服务的权限！";
+
+	String PARAMETER_HAS_NULLPOINTER = "参数为空指针，或者空值！";
+
+	String CAN_NOT_DELETE_DYNAMICDATA_ERROR = "不能删除静态数据";
 }

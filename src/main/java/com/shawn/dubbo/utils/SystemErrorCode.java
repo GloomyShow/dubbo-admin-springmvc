@@ -67,12 +67,19 @@ public interface SystemErrorCode {
 	String BIZ_PERMISSION_RES_ADD_ERROR="G2";
 
 	//TODO 新增
+	/**
+	 * 没有服务操作权限
+	 */
 	String BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR = "G3";
 	//END
 
 	//////================其他错误===============//////////
 	/** 其他异常  */
 	String OTHER_ERROR = "F0";
-	
+
+	/**
+	 * 不能删除静态数据
+	 */
+	String CAN_NOT_DELETE_DYNAMICDATA_ERROR = "P0";
 	
 }
