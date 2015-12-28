@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: org.freemarker:freemarker:2.3.16">
+    <CLASSES>
+      <root url="jar://D:/Tools/maven/3.2.3/repositoryNiro/org/freemarker/freemarker/2.3.16/freemarker-2.3.16.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://D:/Tools/maven/3.2.3/repositoryNiro/org/freemarker/freemarker/2.3.16/freemarker-2.3.16-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://D:/Tools/maven/3.2.3/repositoryNiro/org/freemarker/freemarker/2.3.16/freemarker-2.3.16-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

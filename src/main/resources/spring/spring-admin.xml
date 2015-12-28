@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd">
+
+	<!--<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE" />
+		<property name="ignoreResourceNotFound" value="true" />
+		<property name="locations">
+			<list>
+				<value>/WEB-INF/dubbo.properties</value>
+				<value>file://${user.home}/dubbo.properties</value>
+			</list>
+		</property>
+	</bean>-->
+
+	<dubbo:reference id="registryService" interface="com.alibaba.dubbo.registry.RegistryService"  />
+
+	<!--<bean id="configService" class="com.sf.nirvana.os.service.serMgr.impl.ConfigServiceImpl" />-->
+	
+	<!--<bean id="consumerService" class="com.sf.nirvana.os.service.serMgr.impl.ConsumerServiceImpl" />-->
+	
+	<!--<bean id="overrideService" class="com.sf.nirvana.os.service.serMgr.impl.OverrideServiceImpl" />-->
+	
+	<!--<bean id="ownerService" class="com.sf.nirvana.os.service.serMgr.impl.OwnerServiceImpl" />-->
+	
+	<!--<bean id="providerService" class="com.sf.nirvana.os.service.serMgr.impl.ProviderServiceImpl" />-->
+	
+	<!--<bean id="routeService" class="com.sf.nirvana.os.service.serMgr.impl.RouteServiceImpl" />-->
+	
+	<!--<bean id="userService" class="com.sf.nirvana.os.service.serMgr.impl.UserServiceImpl">
+		<property name="rootPassword" value="${dubbo.admin.root.password}" />
+		<property name="guestPassword" value="${dubbo.admin.guest.password}" />
+	</bean>-->
+
+	<!--<bean id="governanceCache" class="com.sf.nirvana.os.common.serMgr.sync.RegistryServerSync" />-->
+
+</beans>

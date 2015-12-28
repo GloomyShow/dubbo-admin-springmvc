@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:noNamespaceSchemaLocation="ehcache.xsd" updateCheck="false" name="NIRVANA_OS_EHCache">
+
+	<cacheManagerPeerProviderFactory 
+		class="net.sf.ehcache.distribution.jgroups.JGroupsCacheManagerPeerProviderFactory"
+	    properties="connect=UDP(mcast_addr=235.133.211.123;bind_port=33434;mcast_port=45566;ip_ttl=32;
+	    mcast_send_buf_size=150000;mcast_recv_buf_size=80000):
+	    PING(timeout=2000;num_initial_members=6):
+	    MERGE2(min_interval=5000;max_interval=10000):
+	    FD_SOCK:VERIFY_SUSPECT(timeout=1500):
+	    pbcast.NAKACK(retransmit_timeout=3000):
+	    UNICAST:
+	    pbcast.STABLE(desired_avg_gossip=20000):
+	    FRAG:
+	    pbcast.GMS(join_timeout=5000;print_local_addr=true)"
+	    propertySeparator="::"
+  />
+  
+  <!-- session -->
+  <cache 
+		name="NIRVANA.OS.SHIRO.SESSIONCACHE" 
+		maxElementsInMemory="10000" 
+		timeToLiveSeconds="6000" 
+		timeToIdleSeconds="0"
+		eternal="false"
+		overflowToDisk="false" 
+		diskPersistent="false"
+		clearOnFlush="true"  memoryStoreEvictionPolicy="LRU">
+		<cacheEventListenerFactory 
+			class="net.sf.ehcache.distribution.jgroups.JGroupsCacheReplicatorFactory"
+			listenFor="all"/>
+		<bootstrapCacheLoaderFactory
+			class="net.sf.ehcache.distribution.jgroups.JGroupsBootstrapCacheLoaderFactory"
+			properties="bootstrapAsynchronously=true;maximumChunkSizeBytes=5000000" />
+  </cache>
+  
+  <!-- session -->
+  <cache 
+		name="NIRVANA.OS.SHIRO.passwordRetryCache" 
+		maxElementsInMemory="10000" 
+		timeToLiveSeconds="6000" 
+		timeToIdleSeconds="0"
+		eternal="false"
+		overflowToDisk="false" 
+		diskPersistent="false"
+		clearOnFlush="true"  memoryStoreEvictionPolicy="LRU">
+		<cacheEventListenerFactory 
+			class="net.sf.ehcache.distribution.jgroups.JGroupsCacheReplicatorFactory"
+			listenFor="all"/>
+		<bootstrapCacheLoaderFactory
+			class="net.sf.ehcache.distribution.jgroups.JGroupsBootstrapCacheLoaderFactory"
+			properties="bootstrapAsynchronously=true;maximumChunkSizeBytes=5000000" />
+  </cache>
+  
+</ehcache>

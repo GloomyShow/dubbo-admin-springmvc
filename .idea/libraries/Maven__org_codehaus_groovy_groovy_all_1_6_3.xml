@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: org.codehaus.groovy:groovy-all:1.6.3">
+    <CLASSES>
+      <root url="jar://D:/Tools/maven/3.2.3/repositoryNiro/org/codehaus/groovy/groovy-all/1.6.3/groovy-all-1.6.3.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://D:/Tools/maven/3.2.3/repositoryNiro/org/codehaus/groovy/groovy-all/1.6.3/groovy-all-1.6.3-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://D:/Tools/maven/3.2.3/repositoryNiro/org/codehaus/groovy/groovy-all/1.6.3/groovy-all-1.6.3-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
