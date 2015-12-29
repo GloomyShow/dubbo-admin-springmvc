@@ -8,24 +8,29 @@
 package com.shawn.dubbo.controller.serMgr;
 
 import com.alibaba.dubbo.common.URL;
+import com.alibaba.dubbo.common.utils.NetUtils;
 import com.alibaba.dubbo.common.utils.StringUtils;
 
 import com.shawn.dubbo.common.route.OverrideUtils;
-import com.shawn.dubbo.dao.Consumer;
-import com.shawn.dubbo.dao.Provider;
-import com.shawn.dubbo.dao.Route;
+import com.shawn.dubbo.common.route.RouteRule;
+import com.shawn.dubbo.common.route.RouteRule.MatchPair;
+import com.shawn.dubbo.common.route.RouteUtils;
+import com.shawn.dubbo.dao.*;
 import com.shawn.dubbo.dao.Override;
 import com.shawn.dubbo.serMgrHelper.Tool;
 import com.shawn.dubbo.service.ConsumerService;
 import com.shawn.dubbo.service.OverrideService;
 import com.shawn.dubbo.service.ProviderService;
 import com.shawn.dubbo.service.RouteService;
+import com.shawn.dubbo.utils.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.*;
 
 /**
@@ -48,12 +53,22 @@ public class ConsumerController {
     private RouteService routeService;
 
 
-    /*@RequestMapping(value = "/findPageConsumer", method = RequestMethod.GET)
+    /**
+     * 查找消费者，查找条件 service，application，Address
+     * TODO 暂时不做分页，看前台如何处理搜索条件。
+     * @param consumer
+     * @return
+     */
+    @RequestMapping(value = "/findConsumer", method = RequestMethod.GET)
     @ResponseBody
-    public void findPageConsumer(Consumer consumer) {
-        String service = (String) consumer.getService();
-        String application = (String) consumer.getApplication();
-        String address = (String) consumer.getAddress();
+    public JsonResult<List<Consumer>> findConsumer(Consumer consumer) {
+        JsonResult<List<Consumer>> jsonResult = new JsonResult<List<Consumer>>();
+        Page<Consumer> pageConsumer = new Page<Consumer>();
+
+
+        String service = consumer.getService();
+        String application = consumer.getApplication();
+        String address =  consumer.getAddress();
         List<Consumer> consumers;
         List<Override> overrides;
         List<Provider> providers = null;
@@ -81,51 +96,100 @@ public class ConsumerController {
             overrides = overrideService.findAll();
         }
         if (consumers != null && consumers.size() > 0) {
-            for (Consumer consumer : consumers) {
+            for (Consumer tconsumer : consumers) {
             	if (service == null || service.length() == 0) {
-            		providers = providerService.findByService(consumer.getService());
-            		routes = routeService.findByService(consumer.getService());
+            		providers = providerService.findByService(tconsumer.getService());
+            		routes = routeService.findByService(tconsumer.getService());
             	}
                 List<Route> routed = new ArrayList<Route>();
-                consumer.setProviders(RouteUtils.route(consumer.getService(), consumer.getAddress(), consumer.getParameters(), providers, overrides, routes, null, routed));
-            	consumer.setRoutes(routed);
-            	OverrideUtils.setConsumerOverrides(consumer, overrides);
+                tconsumer.setProviders(RouteUtils.route(tconsumer.getService(), tconsumer.getAddress(), tconsumer.getParameters(), providers, overrides, routes, null, routed));
+            	tconsumer.setRoutes(routed);
+            	OverrideUtils.setConsumerOverrides(tconsumer, overrides);
             }
         }
-        context.put("consumers", consumers);
+
+        //分页查找
+       /* List<Consumer> pageConsumers = new ArrayList<Consumer>();
+        int pageSize = consumer.getPageSize();
+        int curretPage = consumer.getCurrentPage();
+        int begin = pageSize*(curretPage-1);
+        int end = pageSize*curretPage;
+        if(providers.size()>0){
+            for(int i=begin;i<end;i++){
+                pageConsumers.add(consumers.get(i));
+            }
+        }
+
+        pageConsumer.setDatas(pageConsumers);
+        pageConsumer.setTotalRecord(consumers.size());
+        pageConsumer.setCurrentPage(curretPage);
+        pageConsumer.setPageSize(pageSize);*/
+
+        jsonResult = JsonResultUtils.getJsonResult(consumers, SystemConstants.RESPONSE_STATUS_SUCCESS,
+                null, SystemConstants.RESPONSE_MESSAGE_SUCCESS);
+
+        return jsonResult;
     }
-    
-    public void show(Long id, Map<String, Object> context) {
-    	Consumer consumer = consumerService.findConsumer(id);
-    	List<Provider> providers = providerService.findByService(consumer.getService());
-    	List<Route> routes = routeService.findByService(consumer.getService());
-    	List<Override> overrides = overrideService.findByService(consumer.getService());
-    	List<Route> routed = new ArrayList<Route>();
+
+
+    /**
+     * 通过id获取消费者具体消息
+     * @param id
+     * @return 消费者，提供者，路由，
+     */
+    @RequestMapping(value="/findConsumerById",method = RequestMethod.GET)
+    @ResponseBody
+    public JsonResult<Map<String,Object>>  findConsumerById(Long id) {
+        JsonResult<Map<String,Object>> mapJsonResult = new JsonResult<Map<String, Object>>();
+        Map<String, Object> resultMap = new HashMap<String, Object>();
+        Consumer consumer = consumerService.findConsumer(id);
+        List<Provider> providers = providerService.findByService(consumer.getService());
+        List<Route> routes = routeService.findByService(consumer.getService());
+        List<Override> overrides = overrideService.findByService(consumer.getService());
+        List<Route> routed = new ArrayList<Route>();
         consumer.setProviders(RouteUtils.route(consumer.getService(), consumer.getAddress(), consumer.getParameters(), providers, overrides, routes, null, routed));
-    	consumer.setRoutes(routed);
-    	OverrideUtils.setConsumerOverrides(consumer, overrides);
-    	context.put("consumer", consumer);
-    	context.put("providers", consumer.getProviders());
-    	context.put("routes", consumer.getRoutes());
-    	context.put("overrides", consumer.getOverrides());
+        consumer.setRoutes(routed);
+        OverrideUtils.setConsumerOverrides(consumer, overrides);
+        resultMap.put("consumer", consumer);
+        resultMap.put("providers", consumer.getProviders());
+        resultMap.put("routes", consumer.getRoutes());
+        resultMap.put("overrides", consumer.getOverrides());
+        mapJsonResult = JsonResultUtils.getJsonResult(resultMap,SystemConstants.RESPONSE_STATUS_SUCCESS,
+                null, SystemConstants.RESPONSE_MESSAGE_SUCCESS);
+
+        return mapJsonResult;
     }
-    
-    public void edit(Long id, Map<String, Object> context) {
-    	show(id, context);
-    }
-    
-    public boolean update(Consumer newConsumer, Map<String, Object> context) {
+
+    /**
+     * 修改消费者
+     * @param newConsumer
+     * @param response
+     * @param request
+     * @return
+     */
+    @RequestMapping(value="/updateConsumer",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult updateConsumer(Consumer newConsumer, HttpServletResponse response, HttpServletRequest request) {
+        JsonResult jsonResult = new JsonResult();
+        User currentUser =(User) request.getSession().getAttribute(Constants.CURRENT_USER);
+        String operator = currentUser.getUsername();
+        String operatorAddress = NetUtils.getLocalHost();
+
     	Long id = newConsumer.getId();
     	String parameters = newConsumer.getParameters();
     	Consumer consumer = consumerService.findConsumer(id);
 		if (consumer == null) {
-			context.put("message", getMessage("NoSuchOperationData", id));
-			return false;
+            jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                    SystemErrorCode.PARAMETER_HAS_NULLPOINTER,SystemConstants.PARAMETER_HAS_NULLPOINTER);
+
+            return jsonResult;
 		}
         String service = consumer.getService();
-        if (!super.currentUser.hasServicePrivilege(service)) {
-            context.put("message", getMessage("HaveNoServicePrivilege", service));
-            return false;
+        if (!currentUser.hasServicePrivilege(service)) {
+            jsonResult = JsonResultUtils.getJsonResult(service,SystemConstants.RESPONSE_STATUS_FAILURE,
+                    SystemErrorCode.BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR,SystemConstants.BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR);
+
+            return jsonResult;
         }
         Map<String, String> oldMap = StringUtils.parseQueryString(consumer.getParameters());
         Map<String, String> newMap = StringUtils.parseQueryString(parameters);
@@ -158,46 +222,86 @@ public class ConsumerController {
             override.setOperatorAddress(operatorAddress);
             overrideService.saveOverride(override);
         }
-        return true;
-    }
-    
-    public void routed(Long id, Map<String, Object> context) {
-    	show(id, context);
+        jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_SUCCESS,
+                null, SystemConstants.RESPONSE_MESSAGE_SUCCESS);
+
+        return jsonResult;
     }
 
-    public void notified(Long id, Map<String, Object> context) {
-    	show(id, context);
+
+    /**
+     * 批量屏蔽
+     * @param ids 消费者ID
+     * @param response
+     * @param request
+     * @return
+     * @throws Exception
+     */
+    @RequestMapping(value="/shiedConsumer",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult shiedConsumer(Long[] ids, HttpServletResponse response, HttpServletRequest request) throws Exception {
+    	return mock(ids, response,request,"force:return null");
     }
 
-    public void overrided(Long id, Map<String, Object> context) {
-    	show(id, context);
-    }
-    
-    public boolean shield(Long[] ids, Map<String, Object> context) throws Exception {
-    	return mock(ids, context, "force:return null");
-    }
-
-    public boolean tolerant(Long[] ids, Map<String, Object> context) throws Exception {
-    	return mock(ids, context, "fail:return null");
-    }
-
-    public boolean recover(Long[] ids, Map<String, Object> context) throws Exception {
-    	return mock(ids, context, "");
+    /**
+     * 批量容错
+     * @param ids
+     * @param response
+     * @param request
+     * @return
+     * @throws Exception
+     */
+    @RequestMapping(value="/tolerantConsumer",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult tolerantConsumer(Long[] ids, HttpServletResponse response, HttpServletRequest request) throws Exception {
+    	return mock(ids, response,request, "fail:return null");
     }
 
-    private boolean mock(Long[] ids, Map<String, Object> context, String mock) throws Exception {
+    /**
+     * 批量恢复
+     * @param ids
+     * @param response
+     * @param request
+     * @return
+     * @throws Exception
+     */
+    @RequestMapping(value="/recoverConsumer",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult recoverConsumer(Long[] ids, HttpServletResponse response, HttpServletRequest request) throws Exception {
+    	return mock(ids, response,request, "");
+    }
+
+
+    /**
+     * 屏蔽，容错，恢复操作等共同类
+     * @param ids
+     * @param response
+     * @param request
+     * @param mock
+     * @return
+     */
+    private JsonResult mock(Long[] ids,  HttpServletResponse response, HttpServletRequest request, String mock){
+
+        JsonResult jsonResult = new JsonResult();
+        User currentUser = (User)request.getSession().getAttribute(Constants.CURRENT_USER);
+        String operator = currentUser.getUsername();
+        String operatorAddress = NetUtils.getLocalHost();
         if (ids == null || ids.length == 0){
-            context.put("message", getMessage("NoSuchOperationData"));
-            return false;
+            jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                    SystemErrorCode.PARAMETER_HAS_NULLPOINTER,SystemConstants.PARAMETER_HAS_NULLPOINTER);
+
+            return jsonResult;
         }
         List<Consumer> consumers = new ArrayList<Consumer>();
         for (Long id : ids) {
             Consumer c = consumerService.findConsumer(id);
             if(c != null){
                 consumers.add(c);
-                if (!super.currentUser.hasServicePrivilege(c.getService())) {
-                    context.put("message", getMessage("HaveNoServicePrivilege", c.getService()));
-                    return false;
+                if (!currentUser.hasServicePrivilege(c.getService())) {
+                    jsonResult = JsonResultUtils.getJsonResult(c.getService(),SystemConstants.RESPONSE_STATUS_FAILURE,
+                            SystemErrorCode.BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR,SystemConstants.BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR);
+
+                    return jsonResult;
                 }
             }
         }
@@ -234,30 +338,79 @@ public class ConsumerController {
                 overrideService.saveOverride(override);
             }
         }
-        return true;
+        jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_SUCCESS,null,SystemConstants.RESPONSE_MESSAGE_SUCCESS);;
+
+        return jsonResult;
     }
 
-    public boolean allshield(Map<String, Object> context) throws Exception {
-    	return allmock(context, "force:return null");
+    /**
+     * 缺省屏蔽
+     * @param service
+     * @param response
+     * @param request
+     * @return
+     * @throws Exception
+     */
+    @RequestMapping(value="/allshieldConsumer",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult allshieldConsumer( String service,HttpServletResponse response, HttpServletRequest request) throws Exception {
+    	return allmock(service,  response, request, "force:return null");
     }
 
-    public boolean alltolerant(Map<String, Object> context) throws Exception {
-    	return allmock(context, "fail:return null");
+    /**
+     * 缺省容忍
+     * @param service
+     * @param response
+     * @param request
+     * @return
+     * @throws Exception
+     */
+    @RequestMapping(value="/alltoleranConsumer",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult alltoleranConsumer(String service, HttpServletResponse response, HttpServletRequest request) throws Exception {
+    	return allmock(service, response, request, "fail:return null");
     }
 
-    public boolean allrecover(Map<String, Object> context) throws Exception {
-    	return allmock(context, "");
+    /**
+     * 缺省恢复
+     * @param service
+     * @param response
+     * @param request
+     * @return
+     * @throws Exception
+     */
+    @RequestMapping(value="/allrecoverConsumer",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult allrecoverConsumer(String service, HttpServletResponse response, HttpServletRequest request) throws Exception {
+    	return allmock(service,  response, request, "");
     }
-    
-    private boolean allmock(Map<String, Object> context, String mock) throws Exception {
-    	String service = (String) context.get("service");
+
+    /**
+     * 缺省屏蔽，容错，恢复操作等共同类
+     * @param service
+     * @param response
+     * @param request
+     * @param mock
+     * @return
+     * @throws Exception
+     */
+    private JsonResult allmock(String service,HttpServletResponse response, HttpServletRequest request, String mock) throws Exception {
+        JsonResult jsonResult = new JsonResult();
+        User currentUser = (User)request.getSession().getAttribute(Constants.CURRENT_USER);
+        String operator = currentUser.getUsername();
+        String operatorAddress = NetUtils.getLocalHost();
+    	/*String service = (String) context.get("service");*/
         if (service == null || service.length() == 0) {
-            context.put("message", getMessage("NoSuchOperationData"));
-            return false;
+            jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                    SystemErrorCode.PARAMETER_HAS_NULLPOINTER,SystemConstants.PARAMETER_HAS_NULLPOINTER);
+
+            return jsonResult;
         }
-        if (! super.currentUser.hasServicePrivilege(service)) {
-            context.put("message", getMessage("HaveNoServicePrivilege", service));
-            return false;
+        if (! currentUser.hasServicePrivilege(service)) {
+            jsonResult = JsonResultUtils.getJsonResult(service,SystemConstants.RESPONSE_STATUS_FAILURE,
+                    SystemErrorCode.BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR,SystemConstants.BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR);
+
+            return jsonResult;
         }
         List<Override> overrides = overrideService.findByService(service);
         Override allOverride = null;
@@ -294,38 +447,100 @@ public class ConsumerController {
             override.setOperatorAddress(operatorAddress);
             overrideService.saveOverride(override);
         }
-        return true;
+
+        jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_SUCCESS,null,SystemConstants.RESPONSE_MESSAGE_SUCCESS);;
+        return jsonResult;
     }
 
-    public boolean allow(Long[] ids, Map<String, Object> context) throws Exception {
-    	return access(ids, context, true, false);
-    }
-    
-    public boolean forbid(Long[] ids, Map<String, Object> context) throws Exception {
-    	return access(ids, context, false, false);
+
+    /**
+     * 批量允许
+     * @param ids
+     * @param response
+     * @param request
+     * @return
+     * @throws Exception
+     */
+    @RequestMapping(value="/allowConsumer",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult allowConsumer(Long[] ids, HttpServletResponse response, HttpServletRequest request) throws Exception {
+    	return access(ids, response, request, true, false);
     }
 
-    public boolean onlyallow(Long[] ids, Map<String, Object> context) throws Exception {
-    	return access(ids, context, true, true);
+    /**
+     * 批量禁止
+     * @param ids
+     * @param response
+     * @param request
+     * @return
+     * @throws Exception
+     */
+    @RequestMapping(value="/forbidConsumer",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult forbidConsumer(Long[] ids, HttpServletResponse response, HttpServletRequest request) throws Exception {
+    	return access(ids, response, request, false, false);
     }
 
-    public boolean onlyforbid(Long[] ids, Map<String, Object> context) throws Exception {
-    	return access(ids, context, false, true);
+    /**
+     * 只允许
+     * @param ids
+     * @param response
+     * @param request
+     * @return
+     * @throws Exception
+     */
+    @RequestMapping(value="/onlyallowConsumer",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult onlyallowConsumer(Long[] ids, HttpServletResponse response, HttpServletRequest request) throws Exception {
+    	return access(ids, response, request, true, true);
     }
 
-    private boolean access(Long[] ids, Map<String, Object> context, boolean allow, boolean only) throws Exception {
-    	if (ids == null || ids.length == 0){
-            context.put("message", getMessage("NoSuchOperationData"));
-            return false;
+    /**
+     * 只禁止
+     * @param ids
+     * @param response
+     * @param request
+     * @return
+     * @throws Exception
+     */
+    @RequestMapping(value="/onlyforbidConsumer",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult onlyforbidConsumer(Long[] ids, HttpServletResponse response, HttpServletRequest request) throws Exception {
+    	return access(ids, response, request, false, true);
+    }
+
+    /**
+     * 允许，禁止操作共同类
+     * @param ids
+     * @param response
+     * @param request
+     * @param allow
+     * @param only
+     * @return
+     * @throws Exception
+     */
+    private JsonResult access(Long[] ids, HttpServletResponse response, HttpServletRequest request, boolean allow, boolean only) throws Exception {
+
+        JsonResult jsonResult = new JsonResult();
+        User currentUser =(User) request.getSession().getAttribute(Constants.CURRENT_USER);
+         String operator = currentUser.getUsername();
+
+        if (ids == null || ids.length == 0){
+            jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                    SystemErrorCode.PARAMETER_HAS_NULLPOINTER,SystemConstants.PARAMETER_HAS_NULLPOINTER);
+
+            return jsonResult;
         }
         List<Consumer> consumers = new ArrayList<Consumer>();
         for (Long id : ids) {
             Consumer c = consumerService.findConsumer(id);
             if(c != null){
                 consumers.add(c);
-                if (!super.currentUser.hasServicePrivilege(c.getService())) {
-                    context.put("message", getMessage("HaveNoServicePrivilege", c.getService()));
-                    return false;
+                if (!currentUser.hasServicePrivilege(c.getService())) {
+                    jsonResult = JsonResultUtils.getJsonResult(c.getService(),SystemConstants.RESPONSE_STATUS_FAILURE,
+                            SystemErrorCode.BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR,SystemConstants.BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR);
+
+                    return jsonResult;
                 }
             }
         }
@@ -406,6 +621,7 @@ public class ConsumerController {
         		routeService.deleteRoute(route.getId());
         	}
         }
-        return true;
-    }*/
+        jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_SUCCESS,null,SystemConstants.RESPONSE_MESSAGE_SUCCESS);;
+        return jsonResult;
+    }
 }

@@ -274,7 +274,7 @@ public class ProviderController {
         String operatorAddress = NetUtils.getLocalHost();
         Long id = newProvider.getId();
         String parameters = newProvider.getParameters();
-        Provider provider = providerService.findProvider(id);
+        Provider provider = providerService.findProvider(id);//查找原来的provider对象
         if (provider == null) {
             jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
                     SystemErrorCode.PARAMETER_HAS_NULLPOINTER,SystemConstants.PARAMETER_HAS_NULLPOINTER);
@@ -292,25 +292,25 @@ public class ProviderController {
         Map<String, String> newMap = StringUtils.parseQueryString(parameters);
         for (Map.Entry<String, String> entry : oldMap.entrySet()) {
             if (entry.getValue().equals(newMap.get(entry.getKey()))) {
-                newMap.remove(entry.getKey());
+                newMap.remove(entry.getKey());//如果新的Parameter Map中在old MaP中存在，则移除
             }
         }
-        if (provider.isDynamic()) {
+        if (provider.isDynamic()) {//如果provider是静态的
             String address = provider.getAddress();
             List<Override> overrides = overrideService.findByServiceAndAddress(provider.getService(), provider.getAddress());
             OverrideUtils.setProviderOverrides(provider, overrides);
             Override override = provider.getOverride();
-            if (override != null) {
-                if (newMap.size() > 0) {
+            if (override != null) {//存在动态配置
+                if (newMap.size() > 0) {//如果存在变化
                     override.setParams(StringUtils.toQueryString(newMap));
                     override.setEnabled(true);
                     override.setOperator(operator);
                     override.setOperatorAddress(operatorAddress);
-                    overrideService.updateOverride(override);
-                } else {
+                    overrideService.updateOverride(override);//更新配置
+                } else {//不存在改变，删除动态配置
                     overrideService.deleteOverride(override.getId());
                 }
-            } else {
+            } else {//不存在动态配置
                 override = new Override();
                 override.setService(service);
                 override.setAddress(address);
@@ -318,9 +318,9 @@ public class ProviderController {
                 override.setEnabled(true);
                 override.setOperator(operator);
                 override.setOperatorAddress(operatorAddress);
-                overrideService.saveOverride(override);
+                overrideService.saveOverride(override);//保存该配置
             }
-        } else {
+        } else {//非静态，直接更新，注销旧的，重新注册新的
             provider.setParameters(parameters);
             providerService.updateProvider(provider);
         }
@@ -439,4 +439,71 @@ public class ProviderController {
         return jsonResult;
     }
 
+
+    /**
+     * 批量倍权
+     * @param ids
+     * @param response
+     * @param request
+     * @return
+     */
+    @RequestMapping(value="/doublingProvider",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult doubling(Long[] ids, HttpServletResponse response, HttpServletRequest request) {
+        JsonResult jsonResult = new JsonResult();
+        User currentUser = (User)request.getSession().getAttribute(Constants.CURRENT_USER);
+
+        for (Long id : ids) {
+            Provider provider = providerService.findProvider(id);
+            if (provider == null) {
+                jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                        SystemErrorCode.PARAMETER_HAS_NULLPOINTER,SystemConstants.PARAMETER_HAS_NULLPOINTER);
+
+                return jsonResult;
+            } else if (! currentUser.hasServicePrivilege(provider.getService())) {
+                jsonResult = JsonResultUtils.getJsonResult(provider.getService(),SystemConstants.RESPONSE_STATUS_FAILURE,
+                        SystemErrorCode.BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR,SystemConstants.BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR);
+
+                return jsonResult;
+            }
+        }
+        for (Long id : ids) {
+            providerService.doublingProvider(id);
+        }
+        jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_SUCCESS,null,SystemConstants.RESPONSE_MESSAGE_SUCCESS);;
+        return jsonResult;
+    }
+
+    /**
+     * 批量半权
+     * @param ids
+     * @param response
+     * @param request
+     * @return
+     */
+    @RequestMapping(value="/havingProvider",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult halving(Long[] ids, HttpServletResponse response, HttpServletRequest request) {
+        JsonResult jsonResult = new JsonResult();
+        User currentUser = (User)request.getSession().getAttribute(Constants.CURRENT_USER);
+        for (Long id : ids) {
+            Provider provider = providerService.findProvider(id);
+            if (provider == null) {
+                jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                        SystemErrorCode.PARAMETER_HAS_NULLPOINTER,SystemConstants.PARAMETER_HAS_NULLPOINTER);
+
+                return jsonResult;
+            } else if (! currentUser.hasServicePrivilege(provider.getService())) {
+                jsonResult = JsonResultUtils.getJsonResult(provider.getService(),SystemConstants.RESPONSE_STATUS_FAILURE,
+                        SystemErrorCode.BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR,SystemConstants.BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR);
+
+                return jsonResult;
+            }
+        }
+        for (Long id : ids) {
+            providerService.halvingProvider(id);
+        }
+        jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_SUCCESS,null,SystemConstants.RESPONSE_MESSAGE_SUCCESS);;
+        return jsonResult;
+    }
 }

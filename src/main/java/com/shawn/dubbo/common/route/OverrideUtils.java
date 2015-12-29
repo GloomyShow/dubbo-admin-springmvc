@@ -74,24 +74,29 @@ public class OverrideUtils {
 			return s == null || s.length() == 0 || Constants.ANY_VALUE.equals(s) || Constants.ANYHOST_VALUE.equals(s);
 		}
 	};
-	
+
+	/**
+	 * 动态配置消费者
+	 * @param consumer
+	 * @param overrides
+     */
 	public static void setConsumerOverrides(Consumer consumer, List<Override> overrides) {
 		if (consumer == null || overrides == null) {
 			return;
 		}
 		List<Override> result = new ArrayList<Override>(overrides.size());
 		for(Override override : overrides){
-    		if (! override.isEnabled()) {
+    		if (! override.isEnabled()) {//动态配置不可用
 				continue;
 			}
-    		if (override.isMatch(consumer)) {
+    		if (override.isMatch(consumer)) {//override 匹配 消费者
     			result.add(override);
     		}
-    		if (override.isUniqueMatch(consumer)) {
+    		if (override.isUniqueMatch(consumer)) {//唯一匹配
     			consumer.setOverride(override);
     		}
     	}
-		Collections.sort(result, OverrideUtils.OVERRIDE_COMPARATOR);
+		Collections.sort(result, OverrideUtils.OVERRIDE_COMPARATOR);//result 按照override规定 进行排序
 		consumer.setOverrides(result);
 	}
 	

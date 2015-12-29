@@ -134,17 +134,37 @@ public class Override extends Entity {
     			&& (getApplication() == null || getApplication().length() == 0 || getApplication().equals(Constants.ANY_VALUE) || getApplication().equals(provider.getApplication()));
     }
 
+    /**
+     * 唯一匹配
+     * @param consumer
+     * @return
+     */
     public boolean isUniqueMatch(Consumer consumer) {
     	return isEnabled() && getParams() != null && getParams().length() > 0
     			&& consumer.getService().equals(getService())
     			&& consumer.getAddress().equals(getAddress());
     }
-    
+
+    /**
+     * 匹配消费者
+     * @param consumer
+     * @return
+     */
     public boolean isMatch(Consumer consumer) {
+        /**
+         * 动态配置可用
+         * 参数不为空
+         * 消费者拥有这些服务
+         * 地址为空或者等于*，或者等于0.0.0.0，或者等于消费者地址
+         * 应用为空或者等于*，或者等于0.0.0.0，或者等于消费者应用
+         *
+         */
     	return isEnabled() && getParams() != null && getParams().length() > 0
     			&& consumer.getService().equals(getService())
-    			&& (getAddress() == null || getAddress().length() == 0 || getAddress().equals(Constants.ANY_VALUE) || getAddress().equals(Constants.ANYHOST_VALUE) || getAddress().equals(consumer.getAddress()))
-    			&& (getApplication() == null || getApplication().length() == 0 || getApplication().equals(Constants.ANY_VALUE) || getApplication().equals(consumer.getApplication()));
+    			&& (getAddress() == null || getAddress().length() == 0 || getAddress().equals(Constants.ANY_VALUE)
+                || getAddress().equals(Constants.ANYHOST_VALUE) || getAddress().equals(consumer.getAddress()))
+    			&& (getApplication() == null || getApplication().length() == 0 || getApplication().equals(Constants.ANY_VALUE)
+                || getApplication().equals(consumer.getApplication()));
     }
     
     public Map<String, String> toParametersMap() {
