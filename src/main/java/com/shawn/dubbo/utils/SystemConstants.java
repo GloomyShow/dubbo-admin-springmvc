@@ -24,4 +24,6 @@ public interface SystemConstants {
 	String PARAMETER_HAS_NULLPOINTER = "参数为空指针，或者空值！";
 
 	String CAN_NOT_DELETE_DYNAMICDATA_ERROR = "不能删除静态数据";
+
+	String  PARAMETER_TOO_LONG = "参数过长！";
 }

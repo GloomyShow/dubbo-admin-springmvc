@@ -1,5 +1,7 @@
 package com.shawn.dubbo.utils;
 
+import java.util.regex.Pattern;
+
 public interface Constants {
     /**
      * 操作名称
@@ -43,5 +45,7 @@ public interface Constants {
     String CURRENT_USERNAME = "username";
 
     String ENCODING = "UTF-8";
+
+    final Pattern SPACE_SPLIT_PATTERN = Pattern.compile("\\s+");
 
 }

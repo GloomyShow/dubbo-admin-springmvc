@@ -25,6 +25,10 @@ public interface SystemErrorCode {
 	String PARAMETER_HAS_NULLPOINTER = "04";
 	/** 参数值不在范围内  */
 	String PARAMETER_HAC_UNLIMITED_ERROR = "05";
+	/**
+	 * 请求参数过长
+	 */
+	String PARAMETER_TOO_LONG="06";
 	
 	//////================跟系统有关的错误===============//////////
 	/** 系统错误  */
@@ -58,6 +62,7 @@ public interface SystemErrorCode {
 	 * 用户不存在
 	 */
 	String BIZ_ROLE_NOEXIST = "R2";
+
 	//=======资源业务相关的错误=======//
 	String BIZ_RESOURCE_ADD_ERROR = "E1";
 	String BIZ_RESOURCE_ENABLE_ERROR ="E2";
@@ -65,13 +70,12 @@ public interface SystemErrorCode {
 	//=======权限业务相关的错误=======//
 	String BIZ_PERMISSION_ADD_ERROR = "G1";
 	String BIZ_PERMISSION_RES_ADD_ERROR="G2";
-
-	//TODO 新增
 	/**
 	 * 没有服务操作权限
 	 */
 	String BIZ_SERVICEPRIVILEGE_HAVE_NO_ERROR = "G3";
 	//END
+
 
 	//////================其他错误===============//////////
 	/** 其他异常  */

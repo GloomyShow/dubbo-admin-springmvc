@@ -7,7 +7,9 @@
  */
 package com.shawn.dubbo.controller.serMgr;
 
+import com.alibaba.citrus.util.StringUtil;
 import com.alibaba.dubbo.common.utils.CollectionUtils;
+import com.alibaba.dubbo.common.utils.NetUtils;
 import com.alibaba.dubbo.common.utils.StringUtils;
 import com.shawn.dubbo.common.route.ParseUtils;
 import com.shawn.dubbo.common.route.RouteRule;
@@ -15,21 +17,19 @@ import com.shawn.dubbo.common.route.RouteUtils;
 import com.shawn.dubbo.dao.Consumer;
 import com.shawn.dubbo.dao.Provider;
 import com.shawn.dubbo.dao.Route;
+import com.shawn.dubbo.dao.User;
 import com.shawn.dubbo.serMgrHelper.Tool;
 import com.shawn.dubbo.service.ConsumerService;
 import com.shawn.dubbo.service.OwnerService;
 import com.shawn.dubbo.service.ProviderService;
 import com.shawn.dubbo.service.RouteService;
-import com.shawn.dubbo.utils.JsonResult;
-import com.shawn.dubbo.utils.JsonResultUtils;
-import com.shawn.dubbo.utils.SystemConstants;
-import com.shawn.dubbo.utils.SystemErrorCode;
+import com.shawn.dubbo.utils.*;
+import com.shawn.dubbo.vo.RouteRequestContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import java.text.ParseException;
 import java.util.*;
 
@@ -42,7 +42,7 @@ import java.util.*;
  * @author tony.chenl
  */
 @Controller
-@RequestMapping("/router")
+@RequestMapping("/route")
 public class RouteController{
     
 	private static final int MAX_RULE_LENGTH = 1000;
@@ -131,17 +131,17 @@ public class RouteController{
 
 
     /**
-     * 获取路由详细信息
-     * @param id
+     * 获取路由详细信息，用于编辑修改路由信息
+     * @param routeId
      * @return
      */
     @RequestMapping(value = "/findRouteById",method = RequestMethod.GET)
     @ResponseBody
-    public JsonResult<Map<String,Object>> findRouteById(Long id) {
+    public JsonResult<Map<String,Object>> findRouteById(@RequestParam(value = "routeId") Long routeId) {
         JsonResult<Map<String,Object>>  mapJsonResult = new JsonResult<Map<String, Object>>();
         Map<String,Object> resultMap = new HashMap<String, Object>();
         try {
-            Route route = routeService.findRoute(id);
+            Route route = routeService.findRoute(routeId);
             if (route == null) {
                 mapJsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
                         SystemErrorCode.PARAMETER_HAS_NULLPOINTER,SystemConstants.PARAMETER_HAS_NULLPOINTER);
@@ -189,10 +189,13 @@ public class RouteController{
     }
 
 
-    
+    /**
+     * 检验service合法性
+     * @param service
+     */
     static void checkService(String service) {
-        if(service.contains(",")) throw new IllegalStateException("service(" + service + ") contain illegale ','");
-        
+        if(service.contains(","))
+            throw new IllegalStateException("service(" + service + ") contain illegale ','");
         String interfaceName = service;
         int gi = interfaceName.indexOf("/");
         if(gi != -1) interfaceName = interfaceName.substring(gi + 1);
@@ -204,17 +207,41 @@ public class RouteController{
         }
     }
     
+
     /**
-     * 保存路由信息到数据库中
-     * @param context
+     * 新增路由信息
+     * @param routeRequestContext
+     * @param request
      * @return
      */
-   /* public boolean create(Map<String, Object> context) {
-    	String name = (String)context.get("name");
-        String service = (String)context.get("service");
+    @RequestMapping(value="/createRoute",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult createRoute(@RequestBody RouteRequestContext routeRequestContext,
+                               HttpServletRequest request) {
+
+        JsonResult jsonResult = new JsonResult();
+        String name = routeRequestContext.getRouteName();
+        String service = routeRequestContext.getService();
+
+        if(StringUtils.isBlank(name) ||  StringUtils.isBlank(service) ){
+            jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                    SystemErrorCode.PARAMETER_HAS_NULLPOINTER,SystemConstants.PARAMETER_HAS_NULLPOINTER);
+
+            return jsonResult;
+        }
+
+
+        Map<String,Object> context = routeRequestContext.requestContextToMap(routeRequestContext);
+        User currentUser = (User)request.getSession().getAttribute(Constants.CURRENT_USER);
+        String operator = currentUser.getUsername();
+        String operatorAddress = NetUtils.getLocalHost();
+
+
+
         if (StringUtils.isNotEmpty(service)
                 && StringUtils.isNotEmpty(name)) {
-            checkService(service);
+
+            checkService(service);//检验service合法性
         	
             Map<String, String> when_name2valueList = new HashMap<String, String>();
             Map<String, String> notWhen_name2valueList = new HashMap<String, String>();
@@ -235,8 +262,11 @@ public class RouteController{
                     then_name2valueList, notThen_name2valueList);
             
             if (routeRule.getThenCondition().isEmpty()) {
-                context.put("message", getMessage("Add route error! then is empty."));
-                return false;
+
+                jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                        SystemErrorCode.PARAMETER_HAS_NULLPOINTER,SystemConstants.PARAMETER_HAS_NULLPOINTER);
+
+                return jsonResult;
             }
 
             String matchRule = routeRule.getWhenConditionString();
@@ -244,19 +274,23 @@ public class RouteController{
             
             //限制表达式的长度
             if (matchRule.length() > MAX_RULE_LENGTH) {
-                context.put("message", getMessage("When rule is too long!"));
-                return false;
+                jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                        SystemErrorCode.PARAMETER_TOO_LONG,SystemConstants.PARAMETER_TOO_LONG);
+
+                return jsonResult;
             }
             if (filterRule.length() > MAX_RULE_LENGTH) {
-                context.put("message", getMessage("Then rule is too long!"));
-                return false;
+                jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                        SystemErrorCode.PARAMETER_TOO_LONG,SystemConstants.PARAMETER_TOO_LONG);
+
+                return jsonResult;
             }
             
             Route route = new Route();
             route.setService(service);
             route.setName(name);
-            route.setUsername((String)context.get("operator"));
-            route.setOperator((String)context.get("operatorAddress"));
+            route.setUsername(operator);
+            route.setOperator(operatorAddress);
             route.setRule(routeRule.toString());
             if (StringUtils.isNotEmpty((String)context.get("priority"))) {
                 route.setPriority(Integer.parseInt((String)context.get("priority")));
@@ -264,37 +298,60 @@ public class RouteController{
             routeService.createRoute(route);
             
         }
-        
-        return true;
-    }*/
+
+        jsonResult = JsonResultUtils.getJsonResult(null, SystemConstants.RESPONSE_STATUS_SUCCESS,
+                null, SystemConstants.RESPONSE_MESSAGE_SUCCESS);
+
+        return jsonResult;
+    }
+
+
 
     /**
-     * 保存更新数据到数据库中
-     * @param context
+     * 保存更新数据
+     * @param requestContext
+     * @param request
      * @return
      */
-   /* public boolean update(Map<String, Object> context) {
-    	String idStr = (String)context.get("id");
+    @RequestMapping(value = "/updateRoute",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult updateRoute(@RequestBody RouteRequestContext requestContext,
+                                    HttpServletRequest request) {
+
+        JsonResult jsonResult = new JsonResult();
+        Long routeId = requestContext.getRouteId();
+        String name = requestContext.getRouteName();
+        if(StringUtils.isBlank(name) ||  routeId == null ){
+            jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                    SystemErrorCode.PARAMETER_HAS_NULLPOINTER,SystemConstants.PARAMETER_HAS_NULLPOINTER);
+
+            return jsonResult;
+        }
+
+
+        Map<String,Object> context = requestContext.requestContextToMap(requestContext);
+        User currentUser = (User)request.getSession().getAttribute(Constants.CURRENT_USER);
+        String operator = currentUser.getUsername();
+        String operatorAddress = NetUtils.getLocalHost();
+        String idStr = routeId.toString();
         if (idStr != null && idStr.length() > 0 ) {
-            String[] blacks = (String[])context.get("black");
+            String[] blacks =(String[]) context.get("blacks");
             boolean black = false;
             if(blacks != null && blacks.length > 0){
                 black = true;
             }
 
-            Route oldRoute = routeService.findRoute(Long.valueOf(idStr));
+            Route oldRoute = routeService.findRoute(routeId);
             if(null == oldRoute) {
-                context.put("message", getMessage("NoSuchRecord"));
-                return false;
+                jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                        SystemErrorCode.PARAMETER_HAS_NULLPOINTER,SystemConstants.PARAMETER_HAS_NULLPOINTER);
+
+                return jsonResult;
             }
             //判断参数，拼凑rule
-            if (StringUtils.isNotEmpty((String)context.get("name"))) {
+            if (StringUtils.isNotEmpty(name)) {
             	String service = oldRoute.getService();
-                if (context.get("operator") == null) {
-                    context.put("message", getMessage("HaveNoServicePrivilege", service));
-                    return false;
-                }
-                
+
                 Map<String, String> when_name2valueList = new HashMap<String, String>();
                 Map<String, String> notWhen_name2valueList = new HashMap<String, String>();
                 for(String[] names : when_names) {
@@ -333,8 +390,10 @@ public class RouteController{
                 }
                 
                 if (result.getThenCondition().isEmpty()) {
-                    context.put("message", getMessage("Update route error! then is empty."));
-                    return false;
+                    jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                            SystemErrorCode.PARAMETER_HAS_NULLPOINTER,SystemConstants.PARAMETER_HAS_NULLPOINTER);
+
+                    return jsonResult;
                 }
                 
                 String matchRule = result.getWhenConditionString();
@@ -342,16 +401,20 @@ public class RouteController{
                 
                 //限制表达式的长度
                 if (matchRule.length() > MAX_RULE_LENGTH) {
-                    context.put("message", getMessage("When rule is too long!"));
-                    return false;
+                        jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                        SystemErrorCode.PARAMETER_TOO_LONG,SystemConstants.PARAMETER_TOO_LONG);
+
+                    return jsonResult;
                 }
                 if (filterRule.length() > MAX_RULE_LENGTH) {
-                    context.put("message", getMessage("Then rule is too long!"));
-                    return false;
+                    jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                            SystemErrorCode.PARAMETER_TOO_LONG,SystemConstants.PARAMETER_TOO_LONG);
+
+                    return jsonResult;
                 }
                 
                 int priority = 0;
-                if (StringUtils.isNotEmpty((String)context.get("priority"))) {
+                if (StringUtils.isNotEmpty((String) context.get("priority"))) {
                     priority = Integer.parseInt((String)context.get("priority"));
                 }
                 
@@ -359,44 +422,45 @@ public class RouteController{
                 route.setRule(result.toString());
                 route.setService(service);
                 route.setPriority(priority);
-                route.setName((String)context.get("name"));
-                route.setUsername((String)context.get("operator"));
-                route.setOperator((String)context.get("operatorAddress"));
+                route.setName(name);
+                route.setUsername(operator);
+                route.setOperator(operatorAddress);
                 route.setId(Long.valueOf(idStr));
-                route.setPriority(Integer.parseInt((String)context.get("priority")));
+                route.setPriority(priority);
                 route.setEnabled(oldRoute.isEnabled());
                 routeService.updateRoute(route);
                 
                 Set<String> usernames = new HashSet<String>();
-                usernames.add((String)context.get("operator"));
+                usernames.add(operator);
                 usernames.add(route.getUsername());
-                //RelateUserUtils.addOwnersOfService(usernames, route.getService(), ownerDAO);
+
                 
                 Map<String, Object> params = new HashMap<String, Object>();
                 params.put("action", "update");
                 params.put("route", route);
                 
-            } else {
-                context.put("message", getMessage("MissRequestParameters", "name"));
             }
-        } else {
-            context.put("message", getMessage("MissRequestParameters", "id"));
         }
-        
-        return true;
-    }*/
+
+        jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_SUCCESS,null,SystemConstants.RESPONSE_MESSAGE_SUCCESS);;
+        return jsonResult;
+    }
 
     /**
-     * 删除指定ID的route规则
+     * 批量删除指定ID的route规则
      * @param ids
      * @return
      */
-    public boolean delete(Long[] ids, Map<String, Object> context) {
-    	 for (Long id : ids) {
+    @RequestMapping(value="/deleteRoute",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult deleteRoute(Long[] ids) {
+    	JsonResult jsonResult = new JsonResult();
+    	  for (Long id : ids) {
     		 routeService.deleteRoute(id);
          }
-    	 
-         return true;
+
+        jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_SUCCESS,null,SystemConstants.RESPONSE_MESSAGE_SUCCESS);;
+        return jsonResult;
     }
     
     /**
@@ -404,12 +468,15 @@ public class RouteController{
      * @param ids
      * @return
      */
-    public boolean enable(Long[] ids, Map<String, Object> context) {
+    @RequestMapping(value="/enableRoute",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult enableRoute(Long[] ids) {
+        JsonResult jsonResult = new JsonResult();
         for(Long id : ids){
             routeService.enableRoute(id);
         }
-        
-        return true;
+        jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_SUCCESS,null,SystemConstants.RESPONSE_MESSAGE_SUCCESS);;
+        return jsonResult;
     }
     
     /**
@@ -417,53 +484,90 @@ public class RouteController{
      * @param ids
      * @return
      */
-    public boolean disable(Long[] ids, Map<String, Object> context) {
+    @RequestMapping(value="/disableRoute",method = RequestMethod.POST)
+    @ResponseBody
+    public JsonResult disableRoute(Long[] ids) {
+        JsonResult jsonResult = new JsonResult();
         for(Long id : ids){
             routeService.disableRoute(id);
         }
-        
-        return true;
+        jsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_SUCCESS,null,SystemConstants.RESPONSE_MESSAGE_SUCCESS);;
+        return jsonResult;
     }
     
+
     /**
-     * 选择消费者
-     * @param context
+     * 选择路由，预览相关路由信息
+     * @param routeId
+     * @return
      */
-    public void routeselect(Map<String, Object> context){
-    	long rid = Long.valueOf((String)context.get("id"));
-        context.put("id", rid);
+    @RequestMapping(value="/routeselect",method = RequestMethod.GET)
+    @ResponseBody
+    public JsonResult<Map<String,Object>> routeselect(Long routeId){
+
+        JsonResult<Map<String,Object>> mapJsonResult = new JsonResult<Map<String, Object>>();
+        Map<String,Object> resultMap = new HashMap<String, Object>();
+
+        resultMap.put("id", routeId);
         
-        Route route = routeService.findRoute(rid);
+        Route route = routeService.findRoute(routeId);
         if (route == null) {
-            throw new IllegalStateException("Route(id=" + rid + ") is not existed!");
+            mapJsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                    SystemErrorCode.PARAMETER_HAS_NULLPOINTER,SystemConstants.PARAMETER_HAS_NULLPOINTER);
+
+            return mapJsonResult;
         }
-        
-        context.put("route", route);
+
+        //放入route对象
+        resultMap.put("route", route);
         // 获取数据
         List<Consumer> consumers = consumerService.findByService(route.getService());
-        context.put("consumers", consumers);
+        resultMap.put("consumers", consumers);
         
         Map<String, Boolean> matchRoute = new HashMap<String, Boolean>();
         for(Consumer c : consumers) {
             matchRoute.put(c.getAddress(), RouteUtils.matchRoute(c.getAddress(), null, route, null));
         }
-        context.put("matchRoute", matchRoute);
+        resultMap.put("matchRoute", matchRoute);
+
+        mapJsonResult = JsonResultUtils.getJsonResult(resultMap,SystemConstants.RESPONSE_STATUS_SUCCESS,null,SystemConstants.RESPONSE_MESSAGE_SUCCESS);;
+        return mapJsonResult;
     }
-    
-    
-   /* public void preview(Map<String, Object> context) throws Exception {
-        String rid = (String)context.get("id");
-        String consumerid = (String)context.get("cid");
+
+
+    /**
+     * 通过消费者地址预览
+     * @param requestContext routeId,consumerId,address,service
+     * @return
+     */
+    @RequestMapping(value="/preview")
+    @ResponseBody
+    public JsonResult<Map<String,Object>> preview(@RequestBody RouteRequestContext requestContext){
+
+        JsonResult<Map<String,Object>> mapJsonResult = new JsonResult<Map<String, Object>>();
+        Map<String,Object> resultMap = new HashMap<String, Object>();
+
+        Map<String,Object> context = requestContext.requestContextToMap(requestContext);
+
+
+        String rid = (String)context.get("routeId");
+        String consumerid = (String)context.get("consumerId");
         
         
         if(StringUtils.isEmpty(rid)) {
-            context.put("message", getMessage("MissRequestParameters", "id"));
+            mapJsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                    SystemErrorCode.PARAMETER_HAS_NULLPOINTER,SystemConstants.PARAMETER_HAS_NULLPOINTER);
+
+            return mapJsonResult;
         }
         
         Map<String, String> serviceUrls = new HashMap<String, String>();
         Route route = routeService.findRoute(Long.valueOf(rid));
         if(null == route) {
-            context.put("message", getMessage("NoSuchRecord"));
+            mapJsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                    SystemErrorCode.PARAMETER_HAS_NULLPOINTER,SystemConstants.PARAMETER_HAS_NULLPOINTER);
+
+            return mapJsonResult;
         }
         List<Provider> providers = providerService.findByService(route.getService());
         if (providers != null) {
@@ -474,13 +578,16 @@ public class RouteController{
         if(StringUtils.isNotEmpty(consumerid)) {
             Consumer consumer = consumerService.findConsumer(Long.valueOf(consumerid));
             if(null == consumer) {
-                context.put("message", getMessage("NoSuchRecord"));
+                mapJsonResult = JsonResultUtils.getJsonResult(null,SystemConstants.RESPONSE_STATUS_FAILURE,
+                        SystemErrorCode.PARAMETER_HAS_NULLPOINTER,SystemConstants.PARAMETER_HAS_NULLPOINTER);
+
+                return mapJsonResult;
             }
             Map<String, String> result = RouteUtils.previewRoute(consumer.getService(), consumer.getAddress(), consumer.getParameters(), serviceUrls,
                     route, null, null);
-            context.put("route", route);
-            context.put("consumer", consumer);
-            context.put("result", result);
+            resultMap.put("route", route);
+            resultMap.put("consumer", consumer);
+            resultMap.put("result", result);
         }
         else {
             String address = (String)context.get("address");
@@ -493,12 +600,15 @@ public class RouteController{
             Consumer consumer = new Consumer();
             consumer.setService(service);
             consumer.setAddress(address);
-            context.put("consumer", consumer);
-            context.put("result", result);
+            resultMap.put("consumer", consumer);
+            resultMap.put("result", result);
         }
-        
+
+        mapJsonResult = JsonResultUtils.getJsonResult(resultMap,SystemConstants.RESPONSE_STATUS_SUCCESS,null,SystemConstants.RESPONSE_MESSAGE_SUCCESS);;
+        return mapJsonResult;
+
     }
-    */
+
     /**
      * 添加与服务相关的Owner
      * 

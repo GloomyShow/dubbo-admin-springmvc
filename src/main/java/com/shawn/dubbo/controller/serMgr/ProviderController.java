@@ -56,19 +56,19 @@ public class ProviderController {
     private OverrideService overrideService;
 
     /**
-     * 分页查询提供者
+     * 查询所有提供者
      * @author 594829 on 2015/12/25
      * @param provider 有搜索条件时，在service，application，或者address传值
      * @param response
      * @param request
      * @return 分页提供者
      */
-    @RequestMapping(value = "/findPageProvider", method = RequestMethod.GET)
+    @RequestMapping("/findAllProvider")
     @ResponseBody
-    public JsonResult<Page<Provider>> findPageProvider(Provider provider, HttpServletResponse response, HttpServletRequest request) {
+    public JsonResult<List<Provider>> findAllProvider(Provider provider, HttpServletResponse response, HttpServletRequest request) {
 
-        JsonResult<Page<Provider>> jr = new JsonResult<Page<Provider>>();
-        Page<Provider> providerPage = new Page<Provider>();
+        JsonResult<List<Provider>> jr = new JsonResult<List<Provider>>();
+       /* Page<Provider> providerPage = new Page<Provider>();*/
         String service = provider.getService();
         String application =  provider.getApplication();
         String address = provider.getAddress();
@@ -103,10 +103,10 @@ public class ProviderController {
         setSearchHistroy( response,request,value);
 
         //分页查找
-        List<Provider> pageProviders = new ArrayList<Provider>();
+       /* List<Provider> pageProviders = new ArrayList<Provider>();
         int pageSize = provider.getPageSize();
         int curretPage = provider.getCurrentPage();
-        int begin = provider.getStartRecord();
+        int begin = pageSize*(curretPage-1);
         int end = pageSize*curretPage;
         if(providers.size()>0){
             for(int i=begin;i<end;i++){
@@ -117,9 +117,9 @@ public class ProviderController {
         providerPage.setDatas(pageProviders);
         providerPage.setTotalRecord(providers.size());
         providerPage.setCurrentPage(curretPage);
-        providerPage.setPageSize(pageSize);
+        providerPage.setPageSize(pageSize);*/
 
-        jr = JsonResultUtils.getJsonResult(providerPage, SystemConstants.RESPONSE_STATUS_SUCCESS,
+        jr = JsonResultUtils.getJsonResult(providers, SystemConstants.RESPONSE_STATUS_SUCCESS,
                 null, SystemConstants.RESPONSE_MESSAGE_SUCCESS);
 
         return jr;

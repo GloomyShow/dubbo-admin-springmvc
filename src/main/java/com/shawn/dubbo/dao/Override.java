@@ -108,7 +108,14 @@ public class Override extends Entity {
         return "Override [service=" + service + ", params=" + params + ", application="
                 + application + ", address=" + address + ", username=" + username + ", enabled=" + enabled + "]";
     }
-    
+
+    /**
+     * 地址为空
+     * 地址为*
+     * 应用为空
+     * 应用为*
+     * @return
+     */
     public boolean isDefault() {
     	return (getAddress() == null || getAddress().length() == 0 || Constants.ANY_VALUE.equals(getAddress()) || Constants.ANYHOST_VALUE.equals(getAddress()))
 				&& (getApplication() == null || getApplication().length() == 0 || Constants.ANY_VALUE.equals(getApplication()));
