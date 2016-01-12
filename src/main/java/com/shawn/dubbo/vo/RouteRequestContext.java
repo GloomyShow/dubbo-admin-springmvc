@@ -1,5 +1,6 @@
 package com.shawn.dubbo.vo;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -7,44 +8,46 @@ import java.util.Map;
  * 接收前台数据类
  * Created by 594829 on 2015/12/30.
  */
-public class RouteRequestContext {
+public class RouteRequestContext implements Serializable{
 
-    private Object method;
-    private Object unmethod;
-    private Object consumerApplication;
-    private Object unconsumerApplication;
-    private Object consumerCluster;
-    private Object unconsumerCluster;
 
-    private Object consumerHost;
-    private Object unconsumerHost;
-    private Object consumerVersion;
-    private Object unconsumerVersion;
-    private Object consumerGroup;
-    private Object unconsumerGroup;
+    private static final long serialVersionUID =1L;
+    private Object method;/** 匹配的    方法名 */
+    private Object unmethod; /** 不匹配的    方法名 */
+    private Object consumerApplication;/** 匹配的    消费者应用名 */
+    private Object unconsumerApplication;/** 不匹配的    消费者应用名 */
+    private Object consumerCluster;/** 匹配的    消费者集群 */
+    private Object unconsumerCluster;/** 不匹配的    消费者集群 */
 
-    private Object   providerApplication;
-    private Object   unproviderApplication;
-    private Object   providerCluster;
-    private Object   unproviderCluster;
-    private Object   providerHost;
-    private Object   unproviderHost;
-    private Object   providerProtocol;
-    private Object   unproviderProtocol;
-    private Object   providerPort;
-    private Object   unproviderPort;
-    private Object   providerVersion;
-    private Object   unproviderVersion;
-    private Object   providerGroup;
-    private Object   unproviderGroup;
+    private Object consumerHost;/** 匹配的    消费者IP地址 */
+    private Object unconsumerHost;/** 不匹配的    消费者IP地址 */
+    private Object consumerVersion;/** 匹配的    消费者版本号 */
+    private Object unconsumerVersion;/** 不匹配的    消费者版本号 */
+    private Object consumerGroup;/** 匹配的    消费者群组 */
+    private Object unconsumerGroup;/** 不匹配的    消费者群组 */
 
-    private Object blacks;
-    private Object  priority;
-    private Long routeId;
-    private String routeName;
-    private String service;
-    private String address;
-    private Long consumerId;
+    private Object   providerApplication;    /** 匹配的    提供者应用名 */
+    private Object   unproviderApplication;  /** 不匹配的  提供者应用名*/
+    private Object   providerCluster; /** 匹配的    提供者集群 */
+    private Object   unproviderCluster; /** 不匹配的    提供者集群 */
+    private Object   providerHost;/** 匹配的    提供者IP地址 */
+    private Object   unproviderHost;/** 不匹配的    提供者IP地址 */
+    private Object   providerProtocol; /** 匹配的    提供者协议 */
+    private Object   unproviderProtocol;/** 不匹配的    提供者协议 */
+    private Object   providerPort;/** 匹配的    提供者端口 */
+    private Object   unproviderPort;/** 不匹配的    提供者端口 */
+    private Object   providerVersion; /** 匹配的    提供者版本号 */
+    private Object   unproviderVersion;/** 不匹配的    提供者版本号 */
+    private Object   providerGroup;/** 匹配的    提供者群组 */
+    private Object   unproviderGroup;/** 不匹配的    提供者群组 */
+
+    private Object blacks; /** 黑名单 */
+    private Object  priority; /** 优先级 */
+    private Long routeId; /** 路由ID */
+    private String routeName; /** 路由名称 */
+    private String service; /** 服务名称 */
+    private String address; /** 地址 */
+    private Long consumerId; /** 消费者Id */
 
 
     public Long getConsumerId() {
@@ -311,44 +314,44 @@ public class RouteRequestContext {
         this.unproviderGroup = unproviderGroup;
     }
 
-    public  Map<String,Object> requestContextToMap(RouteRequestContext routeRequestContext){
+    public  Map<String,Object> requestContextToMap(){
 
         Map<String,Object> requestMap = new HashMap<String, Object>();
 
-        requestMap.put("method", routeRequestContext.getMethod());
-        requestMap.put("unmethod", routeRequestContext.getUnmethod());
-        requestMap.put("consumerApplication", routeRequestContext.getConsumerApplication());
-        requestMap.put("unconsumerApplication", routeRequestContext.getUnconsumerApplication());
-        requestMap.put("consumerCluster", routeRequestContext.getConsumerCluster());
-        requestMap.put("unconsumerCluster", routeRequestContext.getUnconsumerCluster());
-        requestMap.put("consumerHost", routeRequestContext.getConsumerHost());
-        requestMap.put("unconsumerHost", routeRequestContext.getUnconsumerHost());
-        requestMap.put("consumerVersion", routeRequestContext.getConsumerVersion());
-        requestMap.put("unconsumerVersion", routeRequestContext.getUnconsumerVersion());
-        requestMap.put("consumerGroup", routeRequestContext.getConsumerGroup());
-        requestMap.put("unconsumerGroup", routeRequestContext.getUnconsumerGroup());
+        requestMap.put("method", method);
+        requestMap.put("unmethod", unmethod);
+        requestMap.put("consumerApplication", consumerApplication);
+        requestMap.put("unconsumerApplication", unconsumerApplication);
+        requestMap.put("consumerCluster", consumerCluster);
+        requestMap.put("unconsumerCluster", unconsumerCluster);
+        requestMap.put("consumerHost", consumerHost);
+        requestMap.put("unconsumerHost", unconsumerHost);
+        requestMap.put("consumerVersion", consumerVersion);
+        requestMap.put("unconsumerVersion", unconsumerVersion);
+        requestMap.put("consumerGroup", consumerGroup);
+        requestMap.put("unconsumerGroup", unconsumerGroup);
 
-        requestMap.put("providerApplication", routeRequestContext.getProviderApplication());
-        requestMap.put("unproviderApplication", routeRequestContext.getUnproviderApplication());
-        requestMap.put("providerCluster", routeRequestContext.getProviderCluster());
-        requestMap.put("unproviderCluster", routeRequestContext.getUnproviderCluster());
-        requestMap.put("providerHost", routeRequestContext.getProviderHost());
-        requestMap.put("unproviderHost", routeRequestContext.getUnproviderHost());
-        requestMap.put("providerProtocol", routeRequestContext.getProviderProtocol());
-        requestMap.put("unproviderProtocol", routeRequestContext.getUnproviderProtocol());
-        requestMap.put("providerPort", routeRequestContext.getProviderPort());
-        requestMap.put("unproviderPort", routeRequestContext.getUnproviderPort());
-        requestMap.put("providerVersion", routeRequestContext.getProviderVersion());
-        requestMap.put("unproviderVersion", routeRequestContext.getUnproviderVersion());
-        requestMap.put("providerGroup", routeRequestContext.getProviderGroup());
-        requestMap.put("unproviderGroup", routeRequestContext.getUnproviderGroup());
+        requestMap.put("providerApplication", providerApplication);
+        requestMap.put("unproviderApplication", unproviderApplication);
+        requestMap.put("providerCluster", providerCluster);
+        requestMap.put("unproviderCluster", unproviderCluster);
+        requestMap.put("providerHost", providerHost);
+        requestMap.put("unproviderHost", unproviderHost);
+        requestMap.put("providerProtocol", providerProtocol);
+        requestMap.put("unproviderProtocol", unproviderProtocol);
+        requestMap.put("providerPort", providerPort);
+        requestMap.put("unproviderPort", unproviderPort);
+        requestMap.put("providerVersion", providerVersion);
+        requestMap.put("unproviderVersion", unproviderVersion);
+        requestMap.put("providerGroup", providerGroup);
+        requestMap.put("unproviderGroup", unproviderGroup);
 
 
-        requestMap.put("black", routeRequestContext.getBlacks());
-        requestMap.put("priority", routeRequestContext.getPriority());
-        requestMap.put("service", routeRequestContext.getService());
-        requestMap.put("address", routeRequestContext.getAddress());
-        requestMap.put("consumerId", routeRequestContext.getConsumerId());
+        requestMap.put("black", blacks);
+        requestMap.put("priority", priority);
+        requestMap.put("service", service);
+        requestMap.put("address", address);
+        requestMap.put("consumerId", consumerId);
 
         return requestMap;
 

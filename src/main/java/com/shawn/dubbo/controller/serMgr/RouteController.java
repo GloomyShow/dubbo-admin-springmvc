@@ -214,9 +214,9 @@ public class RouteController{
      * @param request
      * @return
      */
-    @RequestMapping(value="/createRoute",method = RequestMethod.POST)
+    @RequestMapping(value="/createRoute")
     @ResponseBody
-    public JsonResult createRoute(@RequestBody RouteRequestContext routeRequestContext,
+    public JsonResult createRoute(RouteRequestContext routeRequestContext,
                                HttpServletRequest request) {
 
         JsonResult jsonResult = new JsonResult();
@@ -231,7 +231,7 @@ public class RouteController{
         }
 
 
-        Map<String,Object> context = routeRequestContext.requestContextToMap(routeRequestContext);
+        Map<String,Object> context = routeRequestContext.requestContextToMap();
         User currentUser = (User)request.getSession().getAttribute(Constants.CURRENT_USER);
         String operator = currentUser.getUsername();
         String operatorAddress = NetUtils.getLocalHost();
@@ -329,7 +329,7 @@ public class RouteController{
         }
 
 
-        Map<String,Object> context = requestContext.requestContextToMap(requestContext);
+        Map<String,Object> context = requestContext.requestContextToMap();
         User currentUser = (User)request.getSession().getAttribute(Constants.CURRENT_USER);
         String operator = currentUser.getUsername();
         String operatorAddress = NetUtils.getLocalHost();
@@ -547,7 +547,7 @@ public class RouteController{
         JsonResult<Map<String,Object>> mapJsonResult = new JsonResult<Map<String, Object>>();
         Map<String,Object> resultMap = new HashMap<String, Object>();
 
-        Map<String,Object> context = requestContext.requestContextToMap(requestContext);
+        Map<String,Object> context = requestContext.requestContextToMap();
 
 
         String rid = (String)context.get("routeId");

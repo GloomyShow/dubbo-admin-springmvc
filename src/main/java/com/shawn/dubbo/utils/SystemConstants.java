@@ -26,4 +26,8 @@ public interface SystemConstants {
 	String CAN_NOT_DELETE_DYNAMICDATA_ERROR = "不能删除静态数据";
 
 	String  PARAMETER_TOO_LONG = "参数过长！";
+
+	String PARAMETER_ILLEGAL_IP = "非法的IP地址！";
+
+	String PARAMETER_ILLEGAL_LOCALIP_ANYHOSTIP = "非法的本地IP或主机IP地址！";
 }

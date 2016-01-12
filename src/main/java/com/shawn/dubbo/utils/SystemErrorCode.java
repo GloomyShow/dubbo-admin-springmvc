@@ -29,6 +29,10 @@ public interface SystemErrorCode {
 	 * 请求参数过长
 	 */
 	String PARAMETER_TOO_LONG="06";
+
+	String PARAMETER_ILLEGAL_IP = "07";
+
+	String PARAMETER_ILLEGAL_LOCALIP_ANYHOSTIP = "08";
 	
 	//////================跟系统有关的错误===============//////////
 	/** 系统错误  */
